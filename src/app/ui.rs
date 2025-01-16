@@ -139,12 +139,32 @@ fn package_ui(
                         let deps = pkg.depends();
                         ui.heading("Dependencies");
                         if deps.is_empty() {
-                            ui.label("<this package has no dependencies>");
+                            ui.label("<none>");
                         } else {
                             for dep in deps {
                                 if ui.link(dep.name()).clicked() {
                                     ui_state.cmd.push(Cmd::OpenPkgTab(dep.name().to_string()));
                                 }
+                            }
+                        }
+                        ui.heading("Optional dependencies");
+                        let deps = pkg.optdepends();
+                        if deps.is_empty() {
+                            ui.label("<none>");
+                        } else {
+                            for dep in deps {
+                                ui.horizontal(|ui| {
+                                    if ui.link(dep.name()).clicked() {
+                                        ui_state.cmd.push(Cmd::OpenPkgTab(dep.name().to_string()));
+
+                                        if let Some(ver) = dep.version() {
+                                            ui.label(format!("={ver}"));
+                                        }
+                                    }
+                                    if let Some(desc) = dep.desc() {
+                                        ui.label(desc);
+                                    }
+                                });
                             }
                         }
                     }
