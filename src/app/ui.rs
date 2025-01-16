@@ -4,6 +4,7 @@ use {
     eframe::egui,
     egui_dock::{DockArea, DockState, TabViewer},
     egui_extras::{Column, TableBuilder},
+    std::process::Command,
 };
 
 pub(super) struct UiState {
@@ -52,7 +53,7 @@ impl TabViewer for TabViewState<'_, '_> {
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
         match tab {
             Tab::LocalDb => "Local packages".into(),
-            Tab::Package(name) => format!("Package '{name}'").into(),
+            Tab::Package(pkg) => format!("Package '{}'", pkg.name).into(),
         }
     }
 
@@ -109,16 +110,39 @@ fn package_list_ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiSta
         });
 }
 
-fn package_ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiState, pkg_name: &str) {
+fn package_ui(
+    ui: &mut egui::Ui,
+    pac: &PacState,
+    ui_state: &mut SharedUiState,
+    pkg_tab: &mut PkgTab,
+) {
     pac.with_pkg_list(
-        |pkg_list| match pkg_list.iter().find(|pkg| pkg.name() == pkg_name) {
+        |pkg_list| match pkg_list.iter().find(|pkg| pkg.name() == pkg_tab.name) {
             Some(pkg) => {
                 ui.heading(pkg.name());
-                ui.label(pkg.desc().unwrap_or("<no description>"));
-                ui.heading("Dependencies");
-                for dep in pkg.depends() {
-                    if ui.link(dep.name()).clicked() {
-                        ui_state.cmd.push(Cmd::OpenPkgTab(dep.name().to_string()));
+                ui.separator();
+                ui.horizontal(|ui| {
+                    ui.selectable_value(&mut pkg_tab.tab, PkgTabTab::General, "General");
+                    ui.selectable_value(&mut pkg_tab.tab, PkgTabTab::Files, "File list");
+                });
+                ui.separator();
+                match pkg_tab.tab {
+                    PkgTabTab::General => {
+                        ui.label(pkg.desc().unwrap_or("<no description>"));
+                        ui.heading("Dependencies");
+                        for dep in pkg.depends() {
+                            if ui.link(dep.name()).clicked() {
+                                ui_state.cmd.push(Cmd::OpenPkgTab(dep.name().to_string()));
+                            }
+                        }
+                    }
+                    PkgTabTab::Files => {
+                        for file in pkg.files().files() {
+                            let name = format!("/{}", file.name());
+                            if ui.link(&name).clicked() {
+                                Command::new("xdg-open").arg(name).status().unwrap();
+                            }
+                        }
                     }
                 }
             }
@@ -133,7 +157,18 @@ fn package_ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiState, p
 pub enum Tab {
     #[default]
     LocalDb,
-    Package(String),
+    Package(PkgTab),
+}
+
+pub struct PkgTab {
+    name: String,
+    tab: PkgTabTab,
+}
+
+#[derive(PartialEq)]
+enum PkgTabTab {
+    General,
+    Files,
 }
 
 pub fn top_panel_ui(_app: &mut PacfrontApp, ctx: &egui::Context) {
@@ -152,7 +187,10 @@ pub fn central_panel_ui(app: &mut PacfrontApp, ctx: &egui::Context) {
 pub fn process_cmds(app: &mut PacfrontApp, _ctx: &egui::Context) {
     for cmd in std::mem::take(&mut app.ui.shared.cmd.cmds) {
         match cmd {
-            Cmd::OpenPkgTab(name) => app.ui.dock_state.push_to_first_leaf(Tab::Package(name)),
+            Cmd::OpenPkgTab(name) => app.ui.dock_state.push_to_first_leaf(Tab::Package(PkgTab {
+                name,
+                tab: PkgTabTab::General,
+            })),
         }
     }
 }
