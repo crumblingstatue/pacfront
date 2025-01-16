@@ -3,6 +3,7 @@ mod ui;
 use {
     alpm::{Alpm, Package},
     ouroboros::self_referencing,
+    ui::UiState,
 };
 
 pub struct PacfrontApp {
@@ -33,11 +34,6 @@ impl PacState {
     }
 }
 
-#[derive(Default)]
-struct UiState {
-    filter_string: String,
-}
-
 impl PacfrontApp {
     pub fn new() -> anyhow::Result<Self> {
         Ok(Self {
@@ -51,5 +47,6 @@ impl eframe::App for PacfrontApp {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         ui::top_panel_ui(self, ctx);
         ui::central_panel_ui(self, ctx);
+        ui::process_cmds(self, ctx);
     }
 }
