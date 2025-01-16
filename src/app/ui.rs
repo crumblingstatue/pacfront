@@ -244,10 +244,13 @@ pub fn top_panel_ui(_app: &mut PacfrontApp, ctx: &egui::Context) {
 }
 
 pub fn central_panel_ui(app: &mut PacfrontApp, ctx: &egui::Context) {
-    DockArea::new(&mut app.ui.dock_state).show(ctx, &mut TabViewState {
-        pac: &app.pac,
-        ui: &mut app.ui.shared,
-    });
+    DockArea::new(&mut app.ui.dock_state)
+        .show_leaf_collapse_buttons(false)
+        .show_leaf_close_all_buttons(false)
+        .show(ctx, &mut TabViewState {
+            pac: &app.pac,
+            ui: &mut app.ui.shared,
+        });
 }
 
 pub fn process_cmds(app: &mut PacfrontApp, _ctx: &egui::Context) {
