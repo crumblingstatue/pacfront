@@ -63,6 +63,14 @@ impl TabViewer for TabViewState<'_, '_> {
             Tab::Package(name) => package_ui(ui, self.pac, self.ui, name),
         }
     }
+
+    fn closeable(&mut self, tab: &mut Self::Tab) -> bool {
+        #[expect(clippy::match_like_matches_macro)]
+        match tab {
+            Tab::LocalDb => false,
+            _ => true,
+        }
+    }
 }
 
 fn package_list_ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiState) {
