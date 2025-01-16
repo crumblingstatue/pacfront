@@ -1,0 +1,11 @@
+[package]
+name = "pacfront"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+alpm = "4.0.2"
+anyhow = "1.0.95"
+eframe = "0.30.0"
+egui_extras = "0.30.0"
+ouroboros = "0.18.5"
