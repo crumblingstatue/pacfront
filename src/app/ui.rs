@@ -71,6 +71,13 @@ impl TabViewer for TabViewState<'_, '_> {
             _ => true,
         }
     }
+
+    fn force_close(&mut self, tab: &mut Self::Tab) -> bool {
+        match tab {
+            Tab::LocalDb => false,
+            Tab::Package(pkg_tab) => pkg_tab.force_close,
+        }
+    }
 }
 
 fn package_list_ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiState) {
@@ -131,6 +138,13 @@ fn package_ui(
     ui_state: &mut SharedUiState,
     pkg_tab: &mut PkgTab,
 ) {
+    if ui.input(|inp| {
+        let esc = inp.key_pressed(egui::Key::Escape);
+        let ctrl_w = inp.modifiers.ctrl && inp.key_pressed(egui::Key::W);
+        esc || ctrl_w
+    }) {
+        pkg_tab.force_close = true;
+    }
     pac.with_pkg_list(
         |pkg_list| match pkg_list.iter().find(|pkg| pkg.name() == pkg_tab.name) {
             Some(pkg) => {
@@ -203,10 +217,22 @@ pub enum Tab {
 pub struct PkgTab {
     name: String,
     tab: PkgTabTab,
+    force_close: bool,
 }
 
-#[derive(PartialEq)]
+impl PkgTab {
+    fn new(name: String) -> Self {
+        Self {
+            name,
+            tab: PkgTabTab::default(),
+            force_close: false,
+        }
+    }
+}
+
+#[derive(PartialEq, Default)]
 enum PkgTabTab {
+    #[default]
     General,
     Files,
 }
@@ -227,10 +253,10 @@ pub fn central_panel_ui(app: &mut PacfrontApp, ctx: &egui::Context) {
 pub fn process_cmds(app: &mut PacfrontApp, _ctx: &egui::Context) {
     for cmd in std::mem::take(&mut app.ui.shared.cmd.cmds) {
         match cmd {
-            Cmd::OpenPkgTab(name) => app.ui.dock_state.push_to_first_leaf(Tab::Package(PkgTab {
-                name,
-                tab: PkgTabTab::General,
-            })),
+            Cmd::OpenPkgTab(name) => app
+                .ui
+                .dock_state
+                .push_to_first_leaf(Tab::Package(PkgTab::new(name))),
         }
     }
 }
