@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 use {app::PacfrontApp, eframe::NativeOptions};
 
 mod app;
