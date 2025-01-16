@@ -129,10 +129,15 @@ fn package_ui(
                 match pkg_tab.tab {
                     PkgTabTab::General => {
                         ui.label(pkg.desc().unwrap_or("<no description>"));
+                        let deps = pkg.depends();
                         ui.heading("Dependencies");
-                        for dep in pkg.depends() {
-                            if ui.link(dep.name()).clicked() {
-                                ui_state.cmd.push(Cmd::OpenPkgTab(dep.name().to_string()));
+                        if deps.is_empty() {
+                            ui.label("<this package has no dependencies>");
+                        } else {
+                            for dep in deps {
+                                if ui.link(dep.name()).clicked() {
+                                    ui_state.cmd.push(Cmd::OpenPkgTab(dep.name().to_string()));
+                                }
                             }
                         }
                     }
