@@ -71,12 +71,16 @@ fn package_list_ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiSta
     });
     TableBuilder::new(ui)
         .column(Column::auto())
+        .column(Column::auto())
         .column(Column::remainder())
         .auto_shrink(false)
         .striped(true)
         .header(32.0, |mut row| {
             row.col(|ui| {
                 ui.label("Name");
+            });
+            row.col(|ui| {
+                ui.label("Version");
             });
             row.col(|ui| {
                 ui.label("Description");
@@ -101,6 +105,9 @@ fn package_list_ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiSta
                         if ui.link(pkg.name()).clicked() {
                             ui_state.cmd.push(Cmd::OpenPkgTab(pkg.name().to_string()));
                         }
+                    });
+                    row.col(|ui| {
+                        ui.label(pkg.version().to_string());
                     });
                     row.col(|ui| {
                         ui.label(pkg.desc().unwrap_or("<missing description>"));
