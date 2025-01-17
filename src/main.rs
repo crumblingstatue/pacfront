@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 #![feature(let_chains, array_windows)]
 
 use {app::PacfrontApp, eframe::NativeOptions};
