@@ -107,10 +107,11 @@ fn package_list_ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiSta
                 let filtered: Vec<&Package> = list
                     .iter()
                     .filter(|pkg| {
-                        pkg.name().contains(&ui_state.filter_string)
+                        let filt_lo = ui_state.filter_string.to_ascii_lowercase();
+                        pkg.name().contains(&filt_lo)
                             || pkg
                                 .desc()
-                                .is_some_and(|desc| desc.contains(&ui_state.filter_string))
+                                .is_some_and(|desc| desc.to_ascii_lowercase().contains(&filt_lo))
                     })
                     .copied()
                     .collect();
