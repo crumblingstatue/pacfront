@@ -52,7 +52,7 @@ impl TabViewer for TabViewState<'_, '_> {
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
         match tab {
-            Tab::LocalDb => "Local packages".into(),
+            Tab::LocalDb => format!("Local packages ({})", self.pac.borrow_pkg_list().len()).into(),
             Tab::Package(pkg) => format!("Package '{}'", pkg.name).into(),
         }
     }
