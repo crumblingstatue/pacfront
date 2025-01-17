@@ -1,4 +1,4 @@
-#![feature(let_chains)]
+#![feature(let_chains, array_windows)]
 
 use {app::PacfrontApp, eframe::NativeOptions};
 

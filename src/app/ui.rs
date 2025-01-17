@@ -4,7 +4,7 @@ use {
     eframe::egui,
     egui_dock::{DockArea, DockState, Node, NodeIndex, TabIndex, TabViewer},
     egui_extras::{Column, TableBuilder},
-    std::process::Command,
+    std::{path::Path, process::Command},
 };
 
 pub(super) struct UiState {
@@ -196,7 +196,9 @@ fn package_ui(
                         }
                     }
                     PkgTabTab::Files => {
-                        for file in pkg.files().files() {
+                        let files = pkg.files();
+                        let deduped_files = deduped_files(files.files());
+                        for file in deduped_files {
                             let name = format!("/{}", file.name());
                             if ui.link(&name).clicked() {
                                 Command::new("xdg-open").arg(name).status().unwrap();
@@ -210,6 +212,21 @@ fn package_ui(
             }
         },
     );
+}
+
+/// Filters out items from the package file list that are fully contained by the next item
+/// (e.g. `/usr/bin`) is removed if the next item is `/usr/bin/cat`
+fn deduped_files(list: &[alpm::File]) -> impl Iterator<Item = &alpm::File> {
+    list.array_windows()
+        .filter_map(|[a, b]| {
+            let retain = !path_contains_other_path(b.name().as_ref(), a.name().as_ref());
+            (retain).then_some(a)
+        })
+        .chain(list.last())
+}
+
+fn path_contains_other_path(haystack: &Path, needle: &Path) -> bool {
+    haystack.parent() == Some(needle)
 }
 
 #[derive(Default)]
