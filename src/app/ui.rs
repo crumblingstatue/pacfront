@@ -221,17 +221,23 @@ fn sync_package_list_ui(ui: &mut egui::Ui, pac: &mut PacState, ui_state: &mut Sh
         })
         .body(|mut body| {
             body.ui_mut().style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
-            pac.with_filtered_sync_pkgs(|list| {
+            pac.with_mut(|this| {
+                let list = this.filtered_sync_pkgs;
                 body.rows(24.0, list.len(), |mut row| {
                     let pkg = &list[row.index()];
                     row.col(|ui| {
-                        let dbname = pkg.db().map_or("<missing db>", |db| db.name());
-                        if ui.link(format!("{}/{}", dbname, pkg.name())).clicked() {
-                            ui_state.cmd.push(Cmd::OpenPkgTab {
-                                name: pkg.name().to_string(),
-                                remote: true,
-                            });
-                        }
+                        ui.horizontal(|ui| {
+                            let dbname = pkg.db().map_or("<missing db>", |db| db.name());
+                            if ui.link(format!("{}/{}", dbname, pkg.name())).clicked() {
+                                ui_state.cmd.push(Cmd::OpenPkgTab {
+                                    name: pkg.name().to_string(),
+                                    remote: true,
+                                });
+                            }
+                            if this.pkg_list.iter().any(|pkg2| pkg2.name() == pkg.name()) {
+                                ui.label("[installed]");
+                            }
+                        });
                     });
                     row.col(|ui| {
                         ui.label(pkg.version().to_string());
