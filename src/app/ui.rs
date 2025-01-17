@@ -163,11 +163,16 @@ fn package_ui(
                         if deps.is_empty() {
                             ui.label("<none>");
                         } else {
-                            for dep in deps {
-                                if ui.link(dep.name()).clicked() {
-                                    ui_state.cmd.push(Cmd::OpenPkgTab(dep.name().to_string()));
+                            ui.horizontal_wrapped(|ui| {
+                                for dep in deps {
+                                    let lib_dep = dep.name().ends_with(".so");
+                                    if lib_dep {
+                                        ui.label(dep.to_string());
+                                    } else if ui.link(dep.to_string()).clicked() {
+                                        ui_state.cmd.push(Cmd::OpenPkgTab(dep.name().to_string()));
+                                    }
                                 }
-                            }
+                            });
                         }
                         ui.heading("Optional dependencies");
                         let deps = pkg.optdepends();
