@@ -36,7 +36,7 @@ impl Default for UiState {
     fn default() -> Self {
         Self {
             shared: Default::default(),
-            dock_state: DockState::new(vec![Tab::LocalDb]),
+            dock_state: DockState::new(vec![Tab::LocalDb, Tab::SyncDbList]),
         }
     }
 }
@@ -53,6 +53,7 @@ impl TabViewer for TabViewState<'_, '_> {
         match tab {
             Tab::LocalDb => format!("Local packages ({})", self.pac.borrow_pkg_list().len()).into(),
             Tab::Package(pkg) => format!("Package '{}'", pkg.name).into(),
+            Tab::SyncDbList => format!("Sync DBs ({})", self.pac.borrow_sync().len()).into(),
         }
     }
 
@@ -60,6 +61,7 @@ impl TabViewer for TabViewState<'_, '_> {
         match tab {
             Tab::LocalDb => package_list_ui(ui, self.pac, self.ui),
             Tab::Package(name) => package_ui(ui, self.pac, self.ui, name),
+            Tab::SyncDbList => syncdb_list_ui(ui, self.pac, self.ui),
         }
     }
 
@@ -75,6 +77,7 @@ impl TabViewer for TabViewState<'_, '_> {
         match tab {
             Tab::LocalDb => false,
             Tab::Package(pkg_tab) => pkg_tab.force_close,
+            Tab::SyncDbList => false,
         }
     }
 }
@@ -290,6 +293,7 @@ fn path_contains_other_path(haystack: &Path, needle: &Path) -> bool {
 pub enum Tab {
     #[default]
     LocalDb,
+    SyncDbList,
     Package(PkgTab),
 }
 
@@ -378,4 +382,12 @@ pub fn process_cmds(app: &mut PacfrontApp, _ctx: &egui::Context) {
             }
         }
     }
+}
+
+fn syncdb_list_ui(ui: &mut egui::Ui, pac: &mut PacState, _ui_state: &mut SharedUiState) {
+    pac.with_sync_mut(|sync| {
+        for db in sync {
+            ui.label(format!("{} ({})", db.name(), db.pkgs().len()));
+        }
+    });
 }
