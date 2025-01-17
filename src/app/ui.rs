@@ -278,6 +278,9 @@ fn package_ui(
                     }
                     ui.heading(pkg.name());
                     ui.label(pkg.version().to_string());
+                    if remote && this.pkg_list.iter().any(|pkg2| pkg2.name() == pkg.name()) {
+                        ui.label("[installed]");
+                    }
                 });
                 ui.separator();
                 ui.horizontal(|ui| {
