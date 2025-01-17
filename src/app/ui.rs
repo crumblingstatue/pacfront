@@ -262,7 +262,10 @@ fn package_ui(
         ui.label(format!("debug pkg list len: {}", pkg_list.len()));
         match pkg_list.iter().find(|pkg| pkg.name() == pkg_tab.name) {
             Some(pkg) => {
-                ui.heading(pkg.name());
+                ui.horizontal(|ui| {
+                    ui.heading(pkg.name());
+                    ui.label(pkg.version().to_string());
+                });
                 ui.separator();
                 ui.horizontal(|ui| {
                     ui.selectable_value(&mut pkg_tab.tab, PkgTabTab::General, "General");
