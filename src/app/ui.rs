@@ -278,8 +278,14 @@ fn package_ui(
                     }
                     ui.heading(pkg.name());
                     ui.label(pkg.version().to_string());
-                    if remote && this.pkg_list.iter().any(|pkg2| pkg2.name() == pkg.name()) {
-                        ui.label("[installed]");
+                    if remote
+                        && this.pkg_list.iter().any(|pkg2| pkg2.name() == pkg.name())
+                        && ui.link("[installed]").clicked()
+                    {
+                        ui_state.cmd.push(Cmd::OpenPkgTab {
+                            name: pkg.name().to_string(),
+                            remote: false,
+                        });
                     }
                 });
                 ui.separator();
