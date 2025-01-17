@@ -352,6 +352,11 @@ fn package_ui(
                                 }
                             });
                         }
+                        let provides = pkg.provides();
+                        ui.heading(format!("Provides ({})", provides.len()));
+                        for dep in provides {
+                            ui.label(dep.to_string());
+                        }
                     }
                     PkgTabTab::Files => {
                         ui.add(
