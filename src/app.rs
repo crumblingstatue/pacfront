@@ -1,7 +1,7 @@
 mod ui;
 
 use {
-    alpm::{Alpm, Package, SigLevel},
+    alpm::{Alpm, Package},
     ouroboros::self_referencing,
     ui::UiState,
 };
@@ -35,21 +35,7 @@ struct PacState {
 
 impl PacState {
     fn gimme_new() -> anyhow::Result<Self> {
-        let alpm = Alpm::new2("/", "/var/lib/pacman")?;
-        // Enumerate sync DBs
-        //
-        // TODO: Source repos from /etc/pacman.conf
-        // TODO: Can be enumerated from /var/lib/pacman/sync, but not all
-        //       of it might be enabled, hence the need for pacman.conf
-        // TODO: What is SigLevel?
-        // TODO: Better error handling/logging
-        for entry in std::fs::read_dir("/var/lib/pacman/sync")?.flatten() {
-            if let Some(stem) = entry.path().file_stem() {
-                if let Some(name) = stem.to_str() {
-                    alpm.register_syncdb(name, SigLevel::NONE)?;
-                }
-            }
-        }
+        let alpm = alpm_utils::alpm_with_conf(&alpm_utils::config::Config::new()?)?;
         let mut neu = PacStateBuilder {
             alpm,
             db_builder: |alpm| alpm.localdb(),

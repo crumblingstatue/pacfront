@@ -155,6 +155,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "alpm-utils"
+version = "4.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7a56cf9221faa08b5a59a9f429cc5338d8e77e22e1d7fe7d3179fc5c3acf7fc3"
+dependencies = [
+ "alpm",
+ "pacmanconf",
+]
+
+[[package]]
 name = "android-activity"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -621,6 +631,12 @@ checksum = "0ced0551234e87afee12411d535648dd89d2e7f34c78b753395567aff3d447ff"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "cini"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8628d1f5b9a7b1196ce1aa660e3ba7e2559d350649cbe94993519c127df667f2"
 
 [[package]]
 name = "clipboard-win"
@@ -2183,11 +2199,21 @@ name = "pacfront"
 version = "0.1.0"
 dependencies = [
  "alpm",
+ "alpm-utils",
  "anyhow",
  "eframe",
  "egui_dock",
  "egui_extras",
  "ouroboros",
+]
+
+[[package]]
+name = "pacmanconf"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5be1f202256ab200a4fdaaad0988015987876b0aa336ca7a7e685080bab58a40"
+dependencies = [
+ "cini",
 ]
 
 [[package]]
