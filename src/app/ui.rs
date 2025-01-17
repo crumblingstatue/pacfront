@@ -195,6 +195,19 @@ fn package_ui(
                                 });
                             }
                         }
+                        let reqs = pkg.required_by();
+                        ui.heading(format!("Required by ({})", reqs.len()));
+                        if reqs.is_empty() {
+                            ui.label("<none>");
+                        } else {
+                            ui.horizontal_wrapped(|ui| {
+                                for req in reqs {
+                                    if ui.link(&req).clicked() {
+                                        ui_state.cmd.push(Cmd::OpenPkgTab(req));
+                                    }
+                                }
+                            });
+                        }
                     }
                     PkgTabTab::Files => {
                         ui.add(
