@@ -291,14 +291,30 @@ fn package_ui(
                         } else {
                             ui.horizontal_wrapped(|ui| {
                                 for dep in deps {
-                                    let lib_dep = dep.name().ends_with(".so");
-                                    if lib_dep {
-                                        ui.label(dep.to_string());
-                                    } else if ui.link(dep.to_string()).clicked() {
-                                        ui_state.cmd.push(Cmd::OpenPkgTab {
-                                            name: dep.name().to_string(),
-                                            remote,
-                                        });
+                                    let resolved = pkg_list.iter().find(|pkg| {
+                                        pkg.name() == dep.name()
+                                            || pkg
+                                                .provides()
+                                                .iter()
+                                                .any(|dep2| dep2.name() == dep.name())
+                                    });
+                                    match resolved {
+                                        Some(pkg) => {
+                                            let label = if dep.name() == pkg.name() {
+                                                dep.name()
+                                            } else {
+                                                &format!("{} ({})", dep.name(), pkg.name())
+                                            };
+                                            if ui.link(label).clicked() {
+                                                ui_state.cmd.push(Cmd::OpenPkgTab {
+                                                    name: pkg.name().to_string(),
+                                                    remote,
+                                                });
+                                            }
+                                        }
+                                        None => {
+                                            ui.label(format!("{} (unresolved)", dep));
+                                        }
                                     }
                                 }
                             });
