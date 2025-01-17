@@ -214,6 +214,19 @@ fn package_ui(
                                 }
                             });
                         }
+                        let opt_for = pkg.optional_for();
+                        ui.heading(format!("Optional for ({})", opt_for.len()));
+                        if opt_for.is_empty() {
+                            ui.label("<none>");
+                        } else {
+                            ui.horizontal_wrapped(|ui| {
+                                for name in opt_for {
+                                    if ui.link(&name).clicked() {
+                                        ui_state.cmd.push(Cmd::OpenPkgTab(name));
+                                    }
+                                }
+                            });
+                        }
                     }
                     PkgTabTab::Files => {
                         ui.add(
