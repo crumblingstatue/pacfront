@@ -159,6 +159,12 @@ fn package_ui(
                 match pkg_tab.tab {
                     PkgTabTab::General => {
                         ui.label(pkg.desc().unwrap_or("<no description>"));
+                        if let Some(url) = pkg.url() {
+                            ui.horizontal(|ui| {
+                                ui.label("URL");
+                                ui.hyperlink(url);
+                            });
+                        }
                         let deps = pkg.depends();
                         ui.heading(format!("Dependencies ({})", deps.len()));
                         if deps.is_empty() {
