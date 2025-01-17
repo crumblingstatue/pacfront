@@ -19,17 +19,24 @@ struct PacState {
     #[borrows(db)]
     #[covariant]
     pkg_list: Vec<&'this Package>,
+    #[borrows(db)]
+    #[covariant]
+    filtered_local_pkgs: Vec<&'this Package>,
 }
 
 impl PacState {
     fn gimme_new() -> anyhow::Result<Self> {
         let alpm = Alpm::new2("/", "/var/lib/pacman")?;
-        let neu = PacStateBuilder {
+        let mut neu = PacStateBuilder {
             alpm,
             db_builder: |this| this.localdb(),
             pkg_list_builder: |db| db.pkgs().into_iter().collect(),
+            filtered_local_pkgs_builder: |_db| Vec::new(),
         }
         .build();
+        neu.with_mut(|this| {
+            *this.filtered_local_pkgs = this.pkg_list.clone();
+        });
         Ok(neu)
     }
 }

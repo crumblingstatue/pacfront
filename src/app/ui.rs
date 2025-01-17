@@ -1,6 +1,5 @@
 use {
     super::{PacfrontApp, ouroboros_impl_pac_state::PacState},
-    alpm::Package,
     eframe::egui,
     egui_dock::{DockArea, DockState, Node, NodeIndex, TabIndex, TabViewer},
     egui_extras::{Column, TableBuilder},
@@ -43,7 +42,7 @@ impl Default for UiState {
 }
 
 struct TabViewState<'pac, 'ui> {
-    pac: &'pac PacState,
+    pac: &'pac mut PacState,
     ui: &'ui mut SharedUiState,
 }
 
@@ -80,9 +79,37 @@ impl TabViewer for TabViewState<'_, '_> {
     }
 }
 
-fn package_list_ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiState) {
+fn package_list_ui(ui: &mut egui::Ui, pac: &mut PacState, ui_state: &mut SharedUiState) {
     egui::TopBottomPanel::top("top_panel").show_inside(ui, |ui| {
-        ui.add(egui::TextEdit::singleline(&mut ui_state.filter_string).hint_text("🔍 Filter"))
+        ui.horizontal(|ui| {
+            pac.with_mut(|this| {
+                if ui
+                    .add(
+                        egui::TextEdit::singleline(&mut ui_state.filter_string)
+                            .hint_text("🔍 Filter"),
+                    )
+                    .changed()
+                {
+                    *this.filtered_local_pkgs = this
+                        .pkg_list
+                        .iter()
+                        .filter(|pkg| {
+                            let filt_lo = ui_state.filter_string.to_ascii_lowercase();
+                            pkg.name().contains(&filt_lo)
+                                || pkg.desc().is_some_and(|desc| {
+                                    desc.to_ascii_lowercase().contains(&filt_lo)
+                                })
+                        })
+                        .copied()
+                        .collect();
+                }
+                ui.spacing();
+                ui.label(format!(
+                    "{} packages listed",
+                    this.filtered_local_pkgs.len()
+                ));
+            });
+        });
     });
     TableBuilder::new(ui)
         .column(Column::auto())
@@ -103,20 +130,9 @@ fn package_list_ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiSta
         })
         .body(|mut body| {
             body.ui_mut().style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
-            pac.with_pkg_list(|list| {
-                let filtered: Vec<&Package> = list
-                    .iter()
-                    .filter(|pkg| {
-                        let filt_lo = ui_state.filter_string.to_ascii_lowercase();
-                        pkg.name().contains(&filt_lo)
-                            || pkg
-                                .desc()
-                                .is_some_and(|desc| desc.to_ascii_lowercase().contains(&filt_lo))
-                    })
-                    .copied()
-                    .collect();
-                body.rows(24.0, filtered.len(), |mut row| {
-                    let pkg = &filtered[row.index()];
+            pac.with_filtered_local_pkgs(|list| {
+                body.rows(24.0, list.len(), |mut row| {
+                    let pkg = &list[row.index()];
                     row.col(|ui| {
                         if ui.link(pkg.name()).clicked() {
                             ui_state.cmd.push(Cmd::OpenPkgTab(pkg.name().to_string()));
@@ -313,7 +329,7 @@ pub fn central_panel_ui(app: &mut PacfrontApp, ctx: &egui::Context) {
         .show_leaf_collapse_buttons(false)
         .show_leaf_close_all_buttons(false)
         .show(ctx, &mut TabViewState {
-            pac: &app.pac,
+            pac: &mut app.pac,
             ui: &mut app.ui.shared,
         });
 }
