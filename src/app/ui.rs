@@ -116,6 +116,10 @@ fn package_list_ui(ui: &mut egui::Ui, pac: &mut PacState, ui_state: &mut SharedU
                                 || pkg.desc().is_some_and(|desc| {
                                     desc.to_ascii_lowercase().contains(&filt_lo)
                                 })
+                                || pkg
+                                    .provides()
+                                    .iter()
+                                    .any(|dep| dep.name().contains(&filt_lo))
                         })
                         .copied()
                         .collect();
