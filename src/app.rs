@@ -24,7 +24,13 @@ struct PacState {
     pkg_list: Vec<&'this Package>,
     #[borrows(db)]
     #[covariant]
+    sync_pkg_list: Vec<&'this Package>,
+    #[borrows(db)]
+    #[covariant]
     filtered_local_pkgs: Vec<&'this Package>,
+    #[borrows(db)]
+    #[covariant]
+    filtered_sync_pkgs: Vec<&'this Package>,
 }
 
 impl PacState {
@@ -49,11 +55,15 @@ impl PacState {
             db_builder: |alpm| alpm.localdb(),
             sync_builder: |alpm| alpm.syncdbs().into_iter().collect(),
             pkg_list_builder: |db| db.pkgs().into_iter().collect(),
+            sync_pkg_list_builder: |_db| Vec::new(),
             filtered_local_pkgs_builder: |_db| Vec::new(),
+            filtered_sync_pkgs_builder: |_db| Vec::new(),
         }
         .build();
         neu.with_mut(|this| {
             *this.filtered_local_pkgs = this.pkg_list.clone();
+            *this.sync_pkg_list = this.sync.iter_mut().flat_map(|db| db.pkgs()).collect();
+            *this.filtered_sync_pkgs = this.sync_pkg_list.clone();
         });
         Ok(neu)
     }

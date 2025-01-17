@@ -29,14 +29,14 @@ impl CmdBuf {
 }
 
 enum Cmd {
-    OpenPkgTab(String),
+    OpenPkgTab { name: String, remote: bool },
 }
 
 impl Default for UiState {
     fn default() -> Self {
         Self {
             shared: Default::default(),
-            dock_state: DockState::new(vec![Tab::LocalDb, Tab::SyncDbList]),
+            dock_state: DockState::new(vec![Tab::LocalDb, Tab::SyncDbList, Tab::SyncDbPkgList]),
         }
     }
 }
@@ -52,7 +52,17 @@ impl TabViewer for TabViewState<'_, '_> {
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
         match tab {
             Tab::LocalDb => format!("Local packages ({})", self.pac.borrow_pkg_list().len()).into(),
-            Tab::Package(pkg) => format!("Package '{}'", pkg.name).into(),
+            Tab::SyncDbPkgList => format!(
+                "Remote packages ({})",
+                self.pac
+                    .borrow_sync()
+                    .iter()
+                    .map(|db| db.pkgs().len())
+                    .sum::<usize>()
+            )
+            .into(),
+            Tab::LocalPkg(pkg) => format!("Package '{}'", pkg.name).into(),
+            Tab::RemotePkg(pkg) => format!("Remote Package '{}'", pkg.name).into(),
             Tab::SyncDbList => format!("Sync DBs ({})", self.pac.borrow_sync().len()).into(),
         }
     }
@@ -60,7 +70,9 @@ impl TabViewer for TabViewState<'_, '_> {
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         match tab {
             Tab::LocalDb => package_list_ui(ui, self.pac, self.ui),
-            Tab::Package(name) => package_ui(ui, self.pac, self.ui, name),
+            Tab::SyncDbPkgList => sync_package_list_ui(ui, self.pac, self.ui),
+            Tab::LocalPkg(tab) => package_ui(ui, self.pac, self.ui, tab, false),
+            Tab::RemotePkg(tab) => package_ui(ui, self.pac, self.ui, tab, true),
             Tab::SyncDbList => syncdb_list_ui(ui, self.pac, self.ui),
         }
     }
@@ -76,8 +88,10 @@ impl TabViewer for TabViewState<'_, '_> {
     fn force_close(&mut self, tab: &mut Self::Tab) -> bool {
         match tab {
             Tab::LocalDb => false,
-            Tab::Package(pkg_tab) => pkg_tab.force_close,
+            Tab::LocalPkg(pkg_tab) => pkg_tab.force_close,
+            Tab::RemotePkg(pkg_tab) => pkg_tab.force_close,
             Tab::SyncDbList => false,
+            Tab::SyncDbPkgList => false,
         }
     }
 }
@@ -138,7 +152,80 @@ fn package_list_ui(ui: &mut egui::Ui, pac: &mut PacState, ui_state: &mut SharedU
                     let pkg = &list[row.index()];
                     row.col(|ui| {
                         if ui.link(pkg.name()).clicked() {
-                            ui_state.cmd.push(Cmd::OpenPkgTab(pkg.name().to_string()));
+                            ui_state.cmd.push(Cmd::OpenPkgTab {
+                                name: pkg.name().to_string(),
+                                remote: false,
+                            });
+                        }
+                    });
+                    row.col(|ui| {
+                        ui.label(pkg.version().to_string());
+                    });
+                    row.col(|ui| {
+                        ui.label(pkg.desc().unwrap_or("<missing description>"));
+                    });
+                });
+            });
+        });
+}
+
+fn sync_package_list_ui(ui: &mut egui::Ui, pac: &mut PacState, ui_state: &mut SharedUiState) {
+    egui::TopBottomPanel::top("top_panel").show_inside(ui, |ui| {
+        ui.horizontal(|ui| {
+            pac.with_mut(|this| {
+                if ui
+                    .add(
+                        egui::TextEdit::singleline(&mut ui_state.filter_string)
+                            .hint_text("🔍 Filter"),
+                    )
+                    .changed()
+                {
+                    *this.filtered_sync_pkgs = this
+                        .sync_pkg_list
+                        .iter()
+                        .filter(|pkg| {
+                            let filt_lo = ui_state.filter_string.to_ascii_lowercase();
+                            pkg.name().contains(&filt_lo)
+                                || pkg.desc().is_some_and(|desc| {
+                                    desc.to_ascii_lowercase().contains(&filt_lo)
+                                })
+                        })
+                        .copied()
+                        .collect();
+                }
+                ui.spacing();
+                ui.label(format!("{} packages listed", this.filtered_sync_pkgs.len()));
+            });
+        });
+    });
+    TableBuilder::new(ui)
+        .column(Column::auto())
+        .column(Column::auto())
+        .column(Column::remainder())
+        .auto_shrink(false)
+        .striped(true)
+        .header(32.0, |mut row| {
+            row.col(|ui| {
+                ui.label("Name");
+            });
+            row.col(|ui| {
+                ui.label("Version");
+            });
+            row.col(|ui| {
+                ui.label("Description");
+            });
+        })
+        .body(|mut body| {
+            body.ui_mut().style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
+            pac.with_filtered_sync_pkgs(|list| {
+                body.rows(24.0, list.len(), |mut row| {
+                    let pkg = &list[row.index()];
+                    row.col(|ui| {
+                        if ui.link(pkg.name()).clicked() {
+                            ui_state.cmd.push(Cmd::OpenPkgTab {
+                                name: pkg.name().to_string(),
+                                remote: true,
+                            });
                         }
                     });
                     row.col(|ui| {
@@ -157,6 +244,7 @@ fn package_ui(
     pac: &PacState,
     ui_state: &mut SharedUiState,
     pkg_tab: &mut PkgTab,
+    remote: bool,
 ) {
     if ui.input(|inp| {
         let esc = inp.key_pressed(egui::Key::Escape);
@@ -165,8 +253,14 @@ fn package_ui(
     }) {
         pkg_tab.force_close = true;
     }
-    pac.with_pkg_list(
-        |pkg_list| match pkg_list.iter().find(|pkg| pkg.name() == pkg_tab.name) {
+    pac.with(|this| {
+        let pkg_list = if remote {
+            this.sync_pkg_list
+        } else {
+            this.pkg_list
+        };
+        ui.label(format!("debug pkg list len: {}", pkg_list.len()));
+        match pkg_list.iter().find(|pkg| pkg.name() == pkg_tab.name) {
             Some(pkg) => {
                 ui.heading(pkg.name());
                 ui.separator();
@@ -195,7 +289,10 @@ fn package_ui(
                                     if lib_dep {
                                         ui.label(dep.to_string());
                                     } else if ui.link(dep.to_string()).clicked() {
-                                        ui_state.cmd.push(Cmd::OpenPkgTab(dep.name().to_string()));
+                                        ui_state.cmd.push(Cmd::OpenPkgTab {
+                                            name: dep.name().to_string(),
+                                            remote,
+                                        });
                                     }
                                 }
                             });
@@ -208,7 +305,10 @@ fn package_ui(
                             for dep in deps {
                                 ui.horizontal(|ui| {
                                     if ui.link(dep.name()).clicked() {
-                                        ui_state.cmd.push(Cmd::OpenPkgTab(dep.name().to_string()));
+                                        ui_state.cmd.push(Cmd::OpenPkgTab {
+                                            name: dep.name().to_string(),
+                                            remote,
+                                        });
 
                                         if let Some(ver) = dep.version() {
                                             ui.label(format!("={ver}"));
@@ -228,7 +328,7 @@ fn package_ui(
                             ui.horizontal_wrapped(|ui| {
                                 for req in reqs {
                                     if ui.link(&req).clicked() {
-                                        ui_state.cmd.push(Cmd::OpenPkgTab(req));
+                                        ui_state.cmd.push(Cmd::OpenPkgTab { name: req, remote });
                                     }
                                 }
                             });
@@ -241,7 +341,7 @@ fn package_ui(
                             ui.horizontal_wrapped(|ui| {
                                 for name in opt_for {
                                     if ui.link(&name).clicked() {
-                                        ui_state.cmd.push(Cmd::OpenPkgTab(name));
+                                        ui_state.cmd.push(Cmd::OpenPkgTab { name, remote });
                                     }
                                 }
                             });
@@ -270,8 +370,8 @@ fn package_ui(
             None => {
                 ui.label("<Unresolved package>");
             }
-        },
-    );
+        }
+    });
 }
 
 /// Filters out items from the package file list that are fully contained by the next item
@@ -294,7 +394,9 @@ pub enum Tab {
     #[default]
     LocalDb,
     SyncDbList,
-    Package(PkgTab),
+    SyncDbPkgList,
+    LocalPkg(PkgTab),
+    RemotePkg(PkgTab),
 }
 
 pub struct PkgTab {
@@ -341,7 +443,7 @@ pub fn central_panel_ui(app: &mut PacfrontApp, ctx: &egui::Context) {
 pub fn process_cmds(app: &mut PacfrontApp, _ctx: &egui::Context) {
     for cmd in std::mem::take(&mut app.ui.shared.cmd.cmds) {
         match cmd {
-            Cmd::OpenPkgTab(name) => {
+            Cmd::OpenPkgTab { name, remote } => {
                 // First, try to activate already existing tab for this package
                 let mut focus_indices = None;
                 for (node_idx, (surf_idx, node)) in
@@ -349,7 +451,7 @@ pub fn process_cmds(app: &mut PacfrontApp, _ctx: &egui::Context) {
                 {
                     if let Node::Leaf { tabs, active, .. } = node {
                         for (tab_idx, tab) in tabs.iter_mut().enumerate() {
-                            if let Tab::Package(pkg_tab) = tab
+                            if let Tab::LocalPkg(pkg_tab) = tab
                                 && pkg_tab.name == name
                             {
                                 focus_indices = Some((surf_idx, NodeIndex(node_idx)));
@@ -370,14 +472,21 @@ pub fn process_cmds(app: &mut PacfrontApp, _ctx: &egui::Context) {
                             }) {
                                 continue;
                             }
-                            tabs.push(Tab::Package(PkgTab::new(name)));
+                            if remote {
+                                tabs.push(Tab::RemotePkg(PkgTab::new(name)));
+                            } else {
+                                tabs.push(Tab::LocalPkg(PkgTab::new(name)));
+                            }
                             *active = TabIndex(tabs.len().saturating_sub(1));
                             return;
                         }
                     }
-                    app.ui
-                        .dock_state
-                        .push_to_first_leaf(Tab::Package(PkgTab::new(name)));
+                    let pkg = if remote {
+                        Tab::RemotePkg(PkgTab::new(name))
+                    } else {
+                        Tab::LocalPkg(PkgTab::new(name))
+                    };
+                    app.ui.dock_state.push_to_first_leaf(pkg);
                 }
             }
         }
