@@ -160,7 +160,7 @@ fn package_ui(
                     PkgTabTab::General => {
                         ui.label(pkg.desc().unwrap_or("<no description>"));
                         let deps = pkg.depends();
-                        ui.heading("Dependencies");
+                        ui.heading(format!("Dependencies ({})", deps.len()));
                         if deps.is_empty() {
                             ui.label("<none>");
                         } else {
@@ -175,8 +175,8 @@ fn package_ui(
                                 }
                             });
                         }
-                        ui.heading("Optional dependencies");
                         let deps = pkg.optdepends();
+                        ui.heading(format!("Optional dependencies ({})", deps.len()));
                         if deps.is_empty() {
                             ui.label("<none>");
                         } else {
