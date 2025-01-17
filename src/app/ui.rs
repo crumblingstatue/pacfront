@@ -196,8 +196,16 @@ fn package_ui(
                         }
                     }
                     PkgTabTab::Files => {
+                        ui.add(
+                            egui::TextEdit::singleline(&mut pkg_tab.files_filt_string)
+                                .hint_text("🔍 Filter"),
+                        );
                         let files = pkg.files();
-                        let deduped_files = deduped_files(files.files());
+                        let deduped_files = deduped_files(files.files()).filter(|file| {
+                            file.name()
+                                .to_ascii_lowercase()
+                                .contains(&pkg_tab.files_filt_string.to_ascii_lowercase())
+                        });
                         for file in deduped_files {
                             let name = format!("/{}", file.name());
                             if ui.link(&name).clicked() {
@@ -240,6 +248,7 @@ pub struct PkgTab {
     name: String,
     tab: PkgTabTab,
     force_close: bool,
+    files_filt_string: String,
 }
 
 impl PkgTab {
@@ -248,6 +257,7 @@ impl PkgTab {
             name,
             tab: PkgTabTab::default(),
             force_close: false,
+            files_filt_string: String::new(),
         }
     }
 }
