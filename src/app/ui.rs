@@ -297,10 +297,11 @@ fn package_ui(
                                 for dep in deps {
                                     let resolved = pkg_list.iter().find(|pkg| {
                                         pkg.name() == dep.name()
-                                            || pkg
-                                                .provides()
-                                                .iter()
-                                                .any(|dep2| dep2.name() == dep.name())
+                                            || pkg.provides().iter().any(|dep2| {
+                                                // TODO: This might not be correct/enough
+                                                dep2.name() == dep.name()
+                                                    && dep2.version() >= dep.version()
+                                            })
                                     });
                                     match resolved {
                                         Some(pkg) => {
