@@ -260,10 +260,12 @@ fn package_ui(
         } else {
             this.pkg_list
         };
-        ui.label(format!("debug pkg list len: {}", pkg_list.len()));
         match pkg_list.iter().find(|pkg| pkg.name() == pkg_tab.name) {
             Some(pkg) => {
                 ui.horizontal(|ui| {
+                    if let Some(db) = pkg.db() {
+                        ui.label(format!("{}/", db.name()));
+                    }
                     ui.heading(pkg.name());
                     ui.label(pkg.version().to_string());
                 });
