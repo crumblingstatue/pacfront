@@ -143,10 +143,23 @@ pub fn top_panel_ui(app: &mut PacfrontApp, ctx: &egui::Context) {
         }
         if !handler.out_buf.is_empty() {
             egui::Modal::new(egui::Id::new("pacman output modal")).show(ctx, |ui| {
-                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
                 ui.heading("Pacman output");
                 ui.separator();
-                ui.label(&handler.out_buf);
+                let avail_rect = ui.ctx().available_rect();
+                let w = (avail_rect.width() * 0.5).round();
+                ui.set_width(w);
+                egui::ScrollArea::both()
+                    .max_height((avail_rect.height() * 0.5).round())
+                    .max_width(w)
+                    .show(ui, |ui| {
+                        ui.set_width(1000.0);
+                        ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
+                        ui.add(
+                            egui::TextEdit::multiline(&mut handler.out_buf.as_str())
+                                .code_editor()
+                                .desired_width(f32::INFINITY),
+                        );
+                    });
                 ui.separator();
                 if let Some(status) = &handler.exit_status {
                     ui.label(format!("Pacman exited ({status})"));
