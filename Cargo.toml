@@ -6,9 +6,9 @@ license = "GPL-3.0"
 
 [dependencies]
 alpm = "4.0.2"
+alpm-utils = "4.0.1"
 anyhow = "1.0.95"
 eframe = "0.30.0"
 egui_dock = "0.15.0"
 egui_extras = "0.30.0"
 ouroboros = "0.18.5"
-alpm-utils = "4.0.1"
