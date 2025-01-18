@@ -40,27 +40,27 @@ pub fn process_cmds(app: &mut PacfrontApp, _ctx: &egui::Context) {
                         }
                     }
                 }
-                // FIXME: Really awkward code to try to not open package tab on top of package list tab, if
-                // there is another tab group (node) already open with packages.
+                // Determine where to place the new tab.
+                //
+                // For now, we just push to the last leaf node, and hope that's good enough.
+                #[expect(clippy::collapsible_else_if)]
                 if let Some(indices) = focus_indices {
                     app.ui.dock_state.set_focused_node_and_surface(indices);
                 } else {
-                    for node in app.ui.dock_state.main_surface_mut().iter_mut() {
-                        if let Node::Leaf { tabs, active, .. } = node {
-                            if tabs.iter().any(|tab| {
-                                std::mem::discriminant(tab)
-                                    == std::mem::discriminant(&Tab::LocalPkgList)
-                            }) {
-                                continue;
-                            }
-                            tabs.push(Tab::Pkg(PkgTab::new(id)));
-                            *active = TabIndex(tabs.len().saturating_sub(1));
-                            return;
-                        }
-                    }
-                    app.ui
+                    if let Some(Node::Leaf { tabs, active, .. }) = app
+                        .ui
                         .dock_state
-                        .push_to_first_leaf(Tab::Pkg(PkgTab::new(id)));
+                        .main_surface_mut()
+                        .iter_mut()
+                        .rfind(|node| node.is_leaf())
+                    {
+                        tabs.push(Tab::Pkg(PkgTab::new(id)));
+                        *active = TabIndex(tabs.len().saturating_sub(1));
+                    } else {
+                        app.ui
+                            .dock_state
+                            .push_to_first_leaf(Tab::Pkg(PkgTab::new(id)));
+                    }
                 }
             }
         }

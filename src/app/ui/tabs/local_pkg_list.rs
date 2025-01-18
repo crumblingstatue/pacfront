@@ -1,4 +1,5 @@
 use {
+    super::PkgListState,
     crate::{
         alpm_util::PkgId,
         app::ui::{PacState, SharedUiState, cmd::Cmd},
@@ -7,13 +8,18 @@ use {
     egui_extras::{Column, TableBuilder},
 };
 
-pub fn ui(ui: &mut egui::Ui, pac: &mut PacState, ui_state: &mut SharedUiState) {
+pub fn ui(
+    ui: &mut egui::Ui,
+    pac: &mut PacState,
+    ui_state: &mut SharedUiState,
+    tab_state: &mut PkgListState,
+) {
     egui::TopBottomPanel::top("top_panel").show_inside(ui, |ui| {
         ui.horizontal(|ui| {
             pac.with_mut(|this| {
                 if ui
                     .add(
-                        egui::TextEdit::singleline(&mut ui_state.filter_string)
+                        egui::TextEdit::singleline(&mut tab_state.filter_string)
                             .hint_text("🔍 Filter"),
                     )
                     .changed()
@@ -22,7 +28,7 @@ pub fn ui(ui: &mut egui::Ui, pac: &mut PacState, ui_state: &mut SharedUiState) {
                         .pkg_list
                         .iter()
                         .filter(|pkg| {
-                            let filt_lo = ui_state.filter_string.to_ascii_lowercase();
+                            let filt_lo = tab_state.filter_string.to_ascii_lowercase();
                             pkg.name().contains(&filt_lo)
                                 || pkg.desc().is_some_and(|desc| {
                                     desc.to_ascii_lowercase().contains(&filt_lo)

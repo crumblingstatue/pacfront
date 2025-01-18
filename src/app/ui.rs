@@ -16,7 +16,6 @@ pub(super) struct UiState {
 
 #[derive(Default)]
 struct SharedUiState {
-    filter_string: String,
     cmd: CmdBuf,
 }
 
@@ -24,7 +23,7 @@ impl Default for UiState {
     fn default() -> Self {
         Self {
             shared: Default::default(),
-            dock_state: DockState::new(vec![Tab::LocalPkgList, Tab::RemotePkgList]),
+            dock_state: DockState::new(Tab::default_tabs()),
         }
     }
 }
