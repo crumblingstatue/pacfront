@@ -19,9 +19,11 @@ impl TabViewer for TabViewState<'_, '_> {
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
         match tab {
-            Tab::LocalPkgList(_) => {
-                format!("Local packages ({})", self.pac.borrow_pkg_list().len()).into()
-            }
+            Tab::LocalPkgList(_) => format!(
+                "Local packages ({})",
+                self.pac.borrow_local_pkg_list().len()
+            )
+            .into(),
             Tab::RemotePkgList(_) => format!(
                 "Remote packages ({})",
                 self.pac

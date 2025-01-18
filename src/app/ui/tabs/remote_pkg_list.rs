@@ -24,8 +24,8 @@ pub fn ui(
                     )
                     .changed()
                 {
-                    *this.filtered_sync_pkgs = this
-                        .sync_pkg_list
+                    *this.filt_remote_pkg_list = this
+                        .remote_pkg_list
                         .iter()
                         .filter(|pkg| {
                             let filt_lo = tab_state.filter_string.to_ascii_lowercase();
@@ -38,7 +38,10 @@ pub fn ui(
                         .collect();
                 }
                 ui.spacing();
-                ui.label(format!("{} packages listed", this.filtered_sync_pkgs.len()));
+                ui.label(format!(
+                    "{} packages listed",
+                    this.filt_remote_pkg_list.len()
+                ));
             });
         });
     });
@@ -62,7 +65,7 @@ pub fn ui(
         .body(|mut body| {
             body.ui_mut().style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
             pac.with_mut(|this| {
-                let list = this.filtered_sync_pkgs;
+                let list = this.filt_remote_pkg_list;
                 body.rows(24.0, list.len(), |mut row| {
                     let pkg = &list[row.index()];
                     row.col(|ui| {
@@ -73,7 +76,10 @@ pub fn ui(
                                     .cmd
                                     .push(Cmd::OpenPkgTab(PkgId::qualified(dbname, pkg.name())));
                             }
-                            if this.pkg_list.iter().any(|pkg2| pkg2.name() == pkg.name())
+                            if this
+                                .local_pkg_list
+                                .iter()
+                                .any(|pkg2| pkg2.name() == pkg.name())
                                 && ui
                                     .add(
                                         egui::Label::new("[installed]").sense(egui::Sense::click()),

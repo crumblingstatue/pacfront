@@ -43,9 +43,9 @@ pub fn ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiState, pkg_t
     let remote = pkg_tab.id.is_remote();
     pac.with(|this| {
         let pkg_list = if remote {
-            this.sync_pkg_list
+            this.remote_pkg_list
         } else {
-            this.pkg_list
+            this.local_pkg_list
         };
         match pkg_list.iter().find(|pkg| pkg_tab.id.matches_pkg(pkg)) {
             Some(pkg) => {
@@ -56,7 +56,10 @@ pub fn ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiState, pkg_t
                     ui.heading(pkg.name());
                     ui.label(pkg.version().to_string());
                     if remote
-                        && this.pkg_list.iter().any(|pkg2| pkg2.name() == pkg.name())
+                        && this
+                            .local_pkg_list
+                            .iter()
+                            .any(|pkg2| pkg2.name() == pkg.name())
                         && ui.link("[installed]").clicked()
                     {
                         ui_state.cmd.push(Cmd::OpenPkgTab(PkgId::local(pkg.name())));

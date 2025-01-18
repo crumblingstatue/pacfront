@@ -24,8 +24,8 @@ pub fn ui(
                     )
                     .changed()
                 {
-                    *this.filtered_local_pkgs = this
-                        .pkg_list
+                    *this.filt_local_pkg_list = this
+                        .local_pkg_list
                         .iter()
                         .filter(|pkg| {
                             let filt_lo = tab_state.filter_string.to_ascii_lowercase();
@@ -44,7 +44,7 @@ pub fn ui(
                 ui.spacing();
                 ui.label(format!(
                     "{} packages listed",
-                    this.filtered_local_pkgs.len()
+                    this.filt_local_pkg_list.len()
                 ));
             });
         });
@@ -68,7 +68,7 @@ pub fn ui(
         })
         .body(|mut body| {
             body.ui_mut().style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
-            pac.with_filtered_local_pkgs(|list| {
+            pac.with_filt_local_pkg_list(|list| {
                 body.rows(24.0, list.len(), |mut row| {
                     let pkg = &list[row.index()];
                     row.col(|ui| {
