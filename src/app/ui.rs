@@ -28,7 +28,7 @@ impl Default for UiState {
     fn default() -> Self {
         Self {
             shared: Default::default(),
-            dock_state: DockState::new(vec![Tab::LocalDb, Tab::SyncDbList, Tab::SyncDbPkgList]),
+            dock_state: DockState::new(vec![Tab::LocalDb, Tab::SyncDbPkgList]),
         }
     }
 }
@@ -55,7 +55,6 @@ impl TabViewer for TabViewState<'_, '_> {
             .into(),
             Tab::LocalPkg(pkg) => format!("Package '{}'", pkg.name).into(),
             Tab::RemotePkg(pkg) => format!("Remote Package '{}'", pkg.name).into(),
-            Tab::SyncDbList => format!("Sync DBs ({})", self.pac.borrow_sync().len()).into(),
         }
     }
 
@@ -65,7 +64,6 @@ impl TabViewer for TabViewState<'_, '_> {
             Tab::SyncDbPkgList => tabs::remote_pkg_list::ui(ui, self.pac, self.ui),
             Tab::LocalPkg(tab) => tabs::package::ui(ui, self.pac, self.ui, tab, false),
             Tab::RemotePkg(tab) => tabs::package::ui(ui, self.pac, self.ui, tab, true),
-            Tab::SyncDbList => syncdb_list_ui(ui, self.pac, self.ui),
         }
     }
 
@@ -82,7 +80,6 @@ impl TabViewer for TabViewState<'_, '_> {
             Tab::LocalDb => false,
             Tab::LocalPkg(pkg_tab) => pkg_tab.force_close,
             Tab::RemotePkg(pkg_tab) => pkg_tab.force_close,
-            Tab::SyncDbList => false,
             Tab::SyncDbPkgList => false,
         }
     }
@@ -92,7 +89,6 @@ impl TabViewer for TabViewState<'_, '_> {
 pub enum Tab {
     #[default]
     LocalDb,
-    SyncDbList,
     SyncDbPkgList,
     LocalPkg(PkgTab),
     RemotePkg(PkgTab),
@@ -112,12 +108,4 @@ pub fn central_panel_ui(app: &mut PacfrontApp, ctx: &egui::Context) {
             pac: &mut app.pac,
             ui: &mut app.ui.shared,
         });
-}
-
-fn syncdb_list_ui(ui: &mut egui::Ui, pac: &mut PacState, _ui_state: &mut SharedUiState) {
-    pac.with_sync_mut(|sync| {
-        for db in sync {
-            ui.label(format!("{} ({})", db.name(), db.pkgs().len()));
-        }
-    });
 }
