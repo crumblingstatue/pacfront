@@ -4,6 +4,7 @@ use {
         alpm_util::PkgId,
         app::ui::{PacState, SharedUiState, cmd::Cmd},
     },
+    alpm::Package,
     eframe::egui,
     egui_extras::{Column, TableBuilder},
 };
@@ -76,59 +77,7 @@ pub fn ui(
                                     .cmd
                                     .push(Cmd::OpenPkgTab(PkgId::qualified(dbname, pkg.name())));
                             }
-                            if let Some(local_pkg) = this
-                                .local_pkg_list
-                                .iter()
-                                .find(|pkg2| pkg2.name() == pkg.name())
-                            {
-                                let re = match pkg.version().vercmp(local_pkg.version()) {
-                                    std::cmp::Ordering::Less => ui
-                                        .add(
-                                            egui::Label::new({
-                                                egui::RichText::new("[older]")
-                                                    .color(egui::Color32::ORANGE)
-                                            })
-                                            .sense(egui::Sense::click()),
-                                        )
-                                        .on_hover_ui(
-                                            |ui| {
-                                                ui.horizontal(|ui| {
-                                                    ui.label("This package is older than the locally installed");
-                                                    ui.label(egui::RichText::new(local_pkg.name()).color(egui::Color32::YELLOW));
-                                                    ui.label(egui::RichText::new(local_pkg.version().to_string()).color(egui::Color32::ORANGE));
-                                                });
-                                            }
-                                        ),
-                                    std::cmp::Ordering::Equal => ui.add(
-                                        egui::Label::new("[installed]").sense(egui::Sense::click()),
-                                    ),
-                                    std::cmp::Ordering::Greater => ui
-                                        .add(
-                                            egui::Label::new(
-                                                egui::RichText::new("[newer]")
-                                                    .color(egui::Color32::YELLOW),
-                                            )
-                                            .sense(egui::Sense::click()),
-                                        )
-                                        .on_hover_ui(
-                                            |ui| {
-                                                ui.horizontal(|ui| {
-                                                    ui.label("This package is newer than the locally installed");
-                                                    ui.label(egui::RichText::new(local_pkg.name()).color(egui::Color32::YELLOW));
-                                                    ui.label(egui::RichText::new(local_pkg.version().to_string()).color(egui::Color32::ORANGE));
-                                                });
-                                            }
-                                        ),
-                                };
-                                if re.hovered() {
-                                    ui.output_mut(|out| {
-                                        out.cursor_icon = egui::CursorIcon::PointingHand
-                                    });
-                                }
-                                if re.clicked() {
-                                    ui_state.cmd.push(Cmd::OpenPkgTab(PkgId::local(pkg.name())));
-                                }
-                            }
+                            installed_label_for_remote_pkg(ui, ui_state, pkg, this.local_pkg_list);
                         });
                     });
                     row.col(|ui| {
@@ -140,4 +89,66 @@ pub fn ui(
                 });
             });
         });
+}
+
+pub fn installed_label_for_remote_pkg(
+    ui: &mut egui::Ui,
+    ui_state: &mut SharedUiState,
+    remote: &Package,
+    local_pkg_list: &[&Package],
+) {
+    if let Some(local_pkg) = local_pkg_list
+        .iter()
+        .find(|pkg2| pkg2.name() == remote.name())
+    {
+        let re = match remote.version().vercmp(local_pkg.version()) {
+            std::cmp::Ordering::Less => ui
+                .add(
+                    egui::Label::new({
+                        egui::RichText::new("[older]").color(egui::Color32::ORANGE)
+                    })
+                    .sense(egui::Sense::click()),
+                )
+                .on_hover_ui(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("This package is older than the locally installed");
+                        ui.label(
+                            egui::RichText::new(local_pkg.name()).color(egui::Color32::YELLOW),
+                        );
+                        ui.label(
+                            egui::RichText::new(local_pkg.version().to_string())
+                                .color(egui::Color32::ORANGE),
+                        );
+                    });
+                }),
+            std::cmp::Ordering::Equal => {
+                ui.add(egui::Label::new("[installed]").sense(egui::Sense::click()))
+            }
+            std::cmp::Ordering::Greater => ui
+                .add(
+                    egui::Label::new(egui::RichText::new("[newer]").color(egui::Color32::YELLOW))
+                        .sense(egui::Sense::click()),
+                )
+                .on_hover_ui(|ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("This package is newer than the locally installed");
+                        ui.label(
+                            egui::RichText::new(local_pkg.name()).color(egui::Color32::YELLOW),
+                        );
+                        ui.label(
+                            egui::RichText::new(local_pkg.version().to_string())
+                                .color(egui::Color32::ORANGE),
+                        );
+                    });
+                }),
+        };
+        if re.hovered() {
+            ui.output_mut(|out| out.cursor_icon = egui::CursorIcon::PointingHand);
+        }
+        if re.clicked() {
+            ui_state
+                .cmd
+                .push(Cmd::OpenPkgTab(PkgId::local(local_pkg.name())));
+        }
+    }
 }

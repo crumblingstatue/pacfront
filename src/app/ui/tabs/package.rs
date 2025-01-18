@@ -1,4 +1,5 @@
 use {
+    super::remote_pkg_list::installed_label_for_remote_pkg,
     crate::{
         alpm_util::{PkgId, deduped_files},
         app::ui::{PacState, SharedUiState, cmd::Cmd},
@@ -55,14 +56,8 @@ pub fn ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiState, pkg_t
                     }
                     ui.heading(pkg.name());
                     ui.label(pkg.version().to_string());
-                    if remote
-                        && this
-                            .local_pkg_list
-                            .iter()
-                            .any(|pkg2| pkg2.name() == pkg.name())
-                        && ui.link("[installed]").clicked()
-                    {
-                        ui_state.cmd.push(Cmd::OpenPkgTab(PkgId::local(pkg.name())));
+                    if remote {
+                        installed_label_for_remote_pkg(ui, ui_state, pkg, this.local_pkg_list);
                     }
                 });
                 ui.separator();
