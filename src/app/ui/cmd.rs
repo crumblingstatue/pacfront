@@ -31,11 +31,21 @@ pub fn process_cmds(app: &mut PacfrontApp, _ctx: &egui::Context) {
                 {
                     if let Node::Leaf { tabs, active, .. } = node {
                         for (tab_idx, tab) in tabs.iter_mut().enumerate() {
-                            if let Tab::LocalPkg(pkg_tab) = tab
-                                && pkg_tab.name == name
-                            {
-                                focus_indices = Some((surf_idx, NodeIndex(node_idx)));
-                                *active = TabIndex(tab_idx);
+                            #[expect(clippy::collapsible_else_if)]
+                            if remote {
+                                if let Tab::RemotePkg(pkg_tab) = tab
+                                    && pkg_tab.name == name
+                                {
+                                    focus_indices = Some((surf_idx, NodeIndex(node_idx)));
+                                    *active = TabIndex(tab_idx);
+                                }
+                            } else {
+                                if let Tab::LocalPkg(pkg_tab) = tab
+                                    && pkg_tab.name == name
+                                {
+                                    focus_indices = Some((surf_idx, NodeIndex(node_idx)));
+                                    *active = TabIndex(tab_idx);
+                                }
                             }
                         }
                     }
