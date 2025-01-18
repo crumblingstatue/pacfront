@@ -50,12 +50,7 @@ pub fn ui(
         });
         ui.add_space(4.0);
     });
-    TableBuilder::new(ui)
-        .column(Column::auto())
-        .column(Column::auto())
-        .column(Column::remainder())
-        .auto_shrink(false)
-        .striped(true)
+    pkg_list_table_builder(ui)
         .header(18.0, |mut row| {
             row.col(|ui| {
                 ui.label("Name");
@@ -70,7 +65,7 @@ pub fn ui(
         .body(|mut body| {
             body.ui_mut().style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
             pac.with_filt_local_pkg_list(|list| {
-                body.rows(24.0, list.len(), |mut row| {
+                body.rows(22.0, list.len(), |mut row| {
                     let pkg = &list[row.index()];
                     row.col(|ui| {
                         if ui.link(pkg.name()).clicked() {
@@ -86,4 +81,14 @@ pub fn ui(
                 });
             });
         });
+}
+
+pub fn pkg_list_table_builder(ui: &mut egui::Ui) -> TableBuilder {
+    TableBuilder::new(ui)
+        .column(Column::auto())
+        .column(Column::auto())
+        .column(Column::remainder())
+        .auto_shrink(false)
+        .striped(true)
+        .cell_layout(egui::Layout::left_to_right(egui::Align::Center))
 }

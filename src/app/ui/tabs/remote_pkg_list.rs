@@ -1,12 +1,11 @@
 use {
-    super::PkgListState,
+    super::{PkgListState, local_pkg_list::pkg_list_table_builder},
     crate::{
         alpm_util::PkgId,
         app::ui::{PacState, SharedUiState, cmd::Cmd},
     },
     alpm::Package,
     eframe::egui,
-    egui_extras::{Column, TableBuilder},
 };
 
 pub fn ui(
@@ -47,12 +46,7 @@ pub fn ui(
         });
         ui.add_space(4.0);
     });
-    TableBuilder::new(ui)
-        .column(Column::auto())
-        .column(Column::auto())
-        .column(Column::remainder())
-        .auto_shrink(false)
-        .striped(true)
+    pkg_list_table_builder(ui)
         .header(18.0, |mut row| {
             row.col(|ui| {
                 ui.label("Name");
@@ -68,7 +62,7 @@ pub fn ui(
             body.ui_mut().style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
             pac.with_mut(|this| {
                 let list = this.filt_remote_pkg_list;
-                body.rows(24.0, list.len(), |mut row| {
+                body.rows(22.0, list.len(), |mut row| {
                     let pkg = &list[row.index()];
                     row.col(|ui| {
                         ui.horizontal(|ui| {
