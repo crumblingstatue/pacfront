@@ -4,7 +4,11 @@ use {
     eframe::egui,
     egui_colors::Colorix,
     egui_dock::{DockArea, DockState},
-    std::process::Command,
+    std::{
+        io::{BufRead, BufReader},
+        process::{Command, ExitStatus, Stdio},
+        sync::mpsc::TryRecvError,
+    },
     tabs::{Tab, TabViewState},
 };
 
@@ -21,6 +25,7 @@ pub(super) struct UiState {
 pub struct SharedUiState {
     cmd: CmdBuf,
     pub colorix: Option<Colorix>,
+    pac_handler: Option<PacChildHandler>,
 }
 
 impl Default for UiState {
@@ -28,6 +33,29 @@ impl Default for UiState {
         Self {
             shared: Default::default(),
             dock_state: DockState::new(Tab::default_tabs()),
+        }
+    }
+}
+
+pub enum PacmanChildEvent {
+    Line(std::io::Result<String>),
+    Exit(std::io::Result<ExitStatus>),
+}
+
+type PacEventRecv = std::sync::mpsc::Receiver<PacmanChildEvent>;
+
+pub struct PacChildHandler {
+    recv: Option<PacEventRecv>,
+    exit_status: Option<ExitStatus>,
+    out_buf: String,
+}
+
+impl PacChildHandler {
+    pub fn new(recv: PacEventRecv) -> Self {
+        Self {
+            recv: Some(recv),
+            exit_status: None,
+            out_buf: String::new(),
         }
     }
 }
@@ -42,6 +70,33 @@ pub fn top_panel_ui(app: &mut PacfrontApp, ctx: &egui::Context) {
                 paint_util::draw_logo(&painter, re.rect.center(), 8.0);
                 ui.label("Pacfront");
                 ui.separator();
+                ui.menu_button("⟳ Sync", |ui| {
+                    if ui.button("🔁 Sync databases (pacman -Sy)").clicked() {
+                        ui.close_menu();
+                        let mut child = Command::new("pkexec")
+                            .stdout(Stdio::piped())
+                            .stderr(Stdio::piped())
+                            .args(["pacman", "-Sy"])
+                            .spawn()
+                            .unwrap();
+                        let (send, recv) = std::sync::mpsc::channel();
+                        app.ui.shared.pac_handler = Some(PacChildHandler::new(recv));
+                        let reader = BufReader::new(child.stdout.take().unwrap());
+                        let err_reader = BufReader::new(child.stderr.take().unwrap());
+                        let send2 = send.clone();
+                        std::thread::spawn(move || {
+                            for line in reader.lines() {
+                                send.send(PacmanChildEvent::Line(line)).unwrap();
+                            }
+                            send.send(PacmanChildEvent::Exit(child.wait())).unwrap();
+                        });
+                        std::thread::spawn(move || {
+                            for line in err_reader.lines() {
+                                send2.send(PacmanChildEvent::Line(line)).unwrap();
+                            }
+                        });
+                    }
+                });
                 ui.menu_button("☰ Preferences", |ui| {
                     if ui.button("🎨 Color theme").clicked() {
                         ui.close_menu();
@@ -59,8 +114,52 @@ pub fn top_panel_ui(app: &mut PacfrontApp, ctx: &egui::Context) {
                         }
                     }
                 });
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if app.ui.shared.pac_handler.is_some() {
+                        ui.spinner();
+                        ui.label("running pacman...");
+                    }
+                });
             });
         });
+    let mut close_handler = false;
+    if let Some(handler) = &mut app.ui.shared.pac_handler {
+        if let Some(recv) = handler.recv.as_mut() {
+            match recv.try_recv() {
+                Ok(ev) => match ev {
+                    PacmanChildEvent::Line(result) => {
+                        handler.out_buf.push_str(&result.unwrap());
+                        handler.out_buf.push('\n');
+                    }
+                    PacmanChildEvent::Exit(exit_status) => {
+                        handler.exit_status = Some(exit_status.unwrap())
+                    }
+                },
+                Err(TryRecvError::Empty) => {}
+                Err(TryRecvError::Disconnected) => {
+                    handler.recv = None;
+                }
+            }
+        }
+        if !handler.out_buf.is_empty() {
+            egui::Modal::new(egui::Id::new("pacman output modal")).show(ctx, |ui| {
+                ui.style_mut().wrap_mode = Some(egui::TextWrapMode::Extend);
+                ui.heading("Pacman output");
+                ui.separator();
+                ui.label(&handler.out_buf);
+                ui.separator();
+                if let Some(status) = &handler.exit_status {
+                    ui.label(format!("Pacman exited ({status})"));
+                    if ui.button("Close").clicked() {
+                        close_handler = true;
+                    }
+                }
+            });
+        }
+    }
+    if close_handler {
+        app.ui.shared.pac_handler = None;
+    }
 }
 
 pub fn central_panel_ui(app: &mut PacfrontApp, ctx: &egui::Context) {
