@@ -3,6 +3,7 @@
 
 use {app::PacfrontApp, eframe::NativeOptions};
 
+mod alpm_util;
 mod app;
 
 fn main() -> anyhow::Result<()> {
