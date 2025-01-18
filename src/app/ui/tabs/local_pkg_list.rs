@@ -1,5 +1,5 @@
 use {
-    crate::app::ui::{Cmd, PacState, SharedUiState},
+    crate::app::ui::{PacState, SharedUiState, cmd::Cmd},
     eframe::egui,
     egui_extras::{Column, TableBuilder},
 };

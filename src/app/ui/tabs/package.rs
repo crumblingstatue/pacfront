@@ -1,7 +1,7 @@
 use {
     crate::{
         alpm_util::deduped_files,
-        app::ui::{Cmd, PacState, SharedUiState},
+        app::ui::{PacState, SharedUiState, cmd::Cmd},
     },
     eframe::egui,
     std::process::Command,

@@ -68,6 +68,6 @@ impl eframe::App for PacfrontApp {
     fn update(&mut self, ctx: &eframe::egui::Context, _frame: &mut eframe::Frame) {
         ui::top_panel_ui(self, ctx);
         ui::central_panel_ui(self, ctx);
-        ui::process_cmds(self, ctx);
+        ui::cmd::process_cmds(self, ctx);
     }
 }
