@@ -101,7 +101,7 @@ pub fn ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiState, pkg_t
                                             };
                                             if ui.link(label).clicked() {
                                                 ui_state.cmd.push(Cmd::OpenPkgTab(
-                                                    PkgId::qualified(&pkg_tab.id.name, pkg.name()),
+                                                    PkgId::qualified(&pkg_tab.id.db, pkg.name()),
                                                 ));
                                             }
                                         }
