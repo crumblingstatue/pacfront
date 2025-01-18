@@ -48,7 +48,8 @@ pub fn process_cmds(app: &mut PacfrontApp, _ctx: &egui::Context) {
                     for node in app.ui.dock_state.main_surface_mut().iter_mut() {
                         if let Node::Leaf { tabs, active, .. } = node {
                             if tabs.iter().any(|tab| {
-                                std::mem::discriminant(tab) == std::mem::discriminant(&Tab::LocalDb)
+                                std::mem::discriminant(tab)
+                                    == std::mem::discriminant(&Tab::LocalPkgList)
                             }) {
                                 continue;
                             }

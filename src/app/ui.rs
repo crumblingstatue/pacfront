@@ -24,7 +24,7 @@ impl Default for UiState {
     fn default() -> Self {
         Self {
             shared: Default::default(),
-            dock_state: DockState::new(vec![Tab::LocalDb, Tab::SyncDbPkgList]),
+            dock_state: DockState::new(vec![Tab::LocalPkgList, Tab::RemotePkgList]),
         }
     }
 }

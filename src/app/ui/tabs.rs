@@ -19,8 +19,10 @@ impl TabViewer for TabViewState<'_, '_> {
 
     fn title(&mut self, tab: &mut Self::Tab) -> egui::WidgetText {
         match tab {
-            Tab::LocalDb => format!("Local packages ({})", self.pac.borrow_pkg_list().len()).into(),
-            Tab::SyncDbPkgList => format!(
+            Tab::LocalPkgList => {
+                format!("Local packages ({})", self.pac.borrow_pkg_list().len()).into()
+            }
+            Tab::RemotePkgList => format!(
                 "Remote packages ({})",
                 self.pac
                     .borrow_sync()
@@ -36,8 +38,8 @@ impl TabViewer for TabViewState<'_, '_> {
 
     fn ui(&mut self, ui: &mut egui::Ui, tab: &mut Self::Tab) {
         match tab {
-            Tab::LocalDb => local_pkg_list::ui(ui, self.pac, self.ui),
-            Tab::SyncDbPkgList => remote_pkg_list::ui(ui, self.pac, self.ui),
+            Tab::LocalPkgList => local_pkg_list::ui(ui, self.pac, self.ui),
+            Tab::RemotePkgList => remote_pkg_list::ui(ui, self.pac, self.ui),
             Tab::LocalPkg(tab) => package::ui(ui, self.pac, self.ui, tab, false),
             Tab::RemotePkg(tab) => package::ui(ui, self.pac, self.ui, tab, true),
         }
@@ -46,17 +48,17 @@ impl TabViewer for TabViewState<'_, '_> {
     fn closeable(&mut self, tab: &mut Self::Tab) -> bool {
         #[expect(clippy::match_like_matches_macro)]
         match tab {
-            Tab::LocalDb | Tab::SyncDbPkgList => false,
+            Tab::LocalPkgList | Tab::RemotePkgList => false,
             _ => true,
         }
     }
 
     fn force_close(&mut self, tab: &mut Self::Tab) -> bool {
         match tab {
-            Tab::LocalDb => false,
+            Tab::LocalPkgList => false,
             Tab::LocalPkg(pkg_tab) => pkg_tab.force_close,
             Tab::RemotePkg(pkg_tab) => pkg_tab.force_close,
-            Tab::SyncDbPkgList => false,
+            Tab::RemotePkgList => false,
         }
     }
 }
@@ -64,8 +66,8 @@ impl TabViewer for TabViewState<'_, '_> {
 #[derive(Default)]
 pub enum Tab {
     #[default]
-    LocalDb,
-    SyncDbPkgList,
+    LocalPkgList,
+    RemotePkgList,
     LocalPkg(PkgTab),
     RemotePkg(PkgTab),
 }
