@@ -53,7 +53,7 @@ pub fn ui(
         .column(Column::remainder())
         .auto_shrink(false)
         .striped(true)
-        .header(32.0, |mut row| {
+        .header(18.0, |mut row| {
             row.col(|ui| {
                 ui.label("Name");
             });
