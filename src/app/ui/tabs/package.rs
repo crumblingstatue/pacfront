@@ -5,6 +5,7 @@ use {
         app::ui::{PacState, SharedUiState, cmd::Cmd},
     },
     eframe::egui,
+    humansize::format_size_i,
     std::process::Command,
 };
 
@@ -75,6 +76,10 @@ pub fn ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiState, pkg_t
                                 ui.hyperlink(url);
                             });
                         }
+                        ui.label(format!(
+                            "Installed size: {}",
+                            format_size_i(pkg.isize(), humansize::BINARY)
+                        ));
                         let deps = pkg.depends();
                         ui.heading(format!("Dependencies ({})", deps.len()));
                         if deps.is_empty() {
