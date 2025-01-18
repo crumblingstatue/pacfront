@@ -1,5 +1,8 @@
 use {
-    crate::app::ui::{PacState, SharedUiState, cmd::Cmd},
+    crate::{
+        alpm_util::PkgId,
+        app::ui::{PacState, SharedUiState, cmd::Cmd},
+    },
     eframe::egui,
     egui_extras::{Column, TableBuilder},
 };
@@ -60,10 +63,9 @@ pub fn ui(ui: &mut egui::Ui, pac: &mut PacState, ui_state: &mut SharedUiState) {
                         ui.horizontal(|ui| {
                             let dbname = pkg.db().map_or("<missing db>", |db| db.name());
                             if ui.link(format!("{}/{}", dbname, pkg.name())).clicked() {
-                                ui_state.cmd.push(Cmd::OpenPkgTab {
-                                    name: pkg.name().to_string(),
-                                    remote: true,
-                                });
+                                ui_state
+                                    .cmd
+                                    .push(Cmd::OpenPkgTab(PkgId::qualified(dbname, pkg.name())));
                             }
                             if this.pkg_list.iter().any(|pkg2| pkg2.name() == pkg.name())
                                 && ui
@@ -72,10 +74,7 @@ pub fn ui(ui: &mut egui::Ui, pac: &mut PacState, ui_state: &mut SharedUiState) {
                                     )
                                     .clicked()
                             {
-                                ui_state.cmd.push(Cmd::OpenPkgTab {
-                                    name: pkg.name().to_string(),
-                                    remote: false,
-                                });
+                                ui_state.cmd.push(Cmd::OpenPkgTab(PkgId::local(pkg.name())));
                             }
                         });
                     });

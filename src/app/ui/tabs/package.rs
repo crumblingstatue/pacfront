@@ -1,6 +1,6 @@
 use {
     crate::{
-        alpm_util::deduped_files,
+        alpm_util::{PkgId, deduped_files},
         app::ui::{PacState, SharedUiState, cmd::Cmd},
     },
     eframe::egui,
@@ -8,16 +8,16 @@ use {
 };
 
 pub struct PkgTab {
-    pub name: String,
+    pub id: PkgId,
     tab: PkgTabTab,
     pub force_close: bool,
     files_filt_string: String,
 }
 
 impl PkgTab {
-    pub fn new(name: String) -> Self {
+    pub fn new(id: PkgId) -> Self {
         Self {
-            name,
+            id,
             tab: PkgTabTab::default(),
             force_close: false,
             files_filt_string: String::new(),
@@ -32,13 +32,7 @@ enum PkgTabTab {
     Files,
 }
 
-pub fn ui(
-    ui: &mut egui::Ui,
-    pac: &PacState,
-    ui_state: &mut SharedUiState,
-    pkg_tab: &mut PkgTab,
-    remote: bool,
-) {
+pub fn ui(ui: &mut egui::Ui, pac: &PacState, ui_state: &mut SharedUiState, pkg_tab: &mut PkgTab) {
     if ui.input(|inp| {
         let esc = inp.key_pressed(egui::Key::Escape);
         let ctrl_w = inp.modifiers.ctrl && inp.key_pressed(egui::Key::W);
@@ -46,13 +40,14 @@ pub fn ui(
     }) {
         pkg_tab.force_close = true;
     }
+    let remote = pkg_tab.id.is_remote();
     pac.with(|this| {
         let pkg_list = if remote {
             this.sync_pkg_list
         } else {
             this.pkg_list
         };
-        match pkg_list.iter().find(|pkg| pkg.name() == pkg_tab.name) {
+        match pkg_list.iter().find(|pkg| pkg_tab.id.matches_pkg(pkg)) {
             Some(pkg) => {
                 ui.horizontal(|ui| {
                     if let Some(db) = pkg.db() {
@@ -64,10 +59,7 @@ pub fn ui(
                         && this.pkg_list.iter().any(|pkg2| pkg2.name() == pkg.name())
                         && ui.link("[installed]").clicked()
                     {
-                        ui_state.cmd.push(Cmd::OpenPkgTab {
-                            name: pkg.name().to_string(),
-                            remote: false,
-                        });
+                        ui_state.cmd.push(Cmd::OpenPkgTab(PkgId::local(pkg.name())));
                     }
                 });
                 ui.separator();
@@ -108,10 +100,9 @@ pub fn ui(
                                                 &format!("{} ({})", dep.name(), pkg.name())
                                             };
                                             if ui.link(label).clicked() {
-                                                ui_state.cmd.push(Cmd::OpenPkgTab {
-                                                    name: pkg.name().to_string(),
-                                                    remote,
-                                                });
+                                                ui_state.cmd.push(Cmd::OpenPkgTab(
+                                                    PkgId::qualified(&pkg_tab.id.name, pkg.name()),
+                                                ));
                                             }
                                         }
                                         None => {
@@ -129,10 +120,10 @@ pub fn ui(
                             for dep in deps {
                                 ui.horizontal(|ui| {
                                     if ui.link(dep.name()).clicked() {
-                                        ui_state.cmd.push(Cmd::OpenPkgTab {
-                                            name: dep.name().to_string(),
-                                            remote,
-                                        });
+                                        ui_state.cmd.push(Cmd::OpenPkgTab(PkgId::qualified(
+                                            &pkg_tab.id.db,
+                                            dep.name(),
+                                        )));
 
                                         if let Some(ver) = dep.version() {
                                             ui.label(format!("={ver}"));
@@ -152,7 +143,10 @@ pub fn ui(
                             ui.horizontal_wrapped(|ui| {
                                 for req in reqs {
                                     if ui.link(&req).clicked() {
-                                        ui_state.cmd.push(Cmd::OpenPkgTab { name: req, remote });
+                                        ui_state.cmd.push(Cmd::OpenPkgTab(PkgId::qualified(
+                                            &pkg_tab.id.db,
+                                            &req,
+                                        )));
                                     }
                                 }
                             });
@@ -165,7 +159,10 @@ pub fn ui(
                             ui.horizontal_wrapped(|ui| {
                                 for name in opt_for {
                                     if ui.link(&name).clicked() {
-                                        ui_state.cmd.push(Cmd::OpenPkgTab { name, remote });
+                                        ui_state.cmd.push(Cmd::OpenPkgTab(PkgId::qualified(
+                                            &pkg_tab.id.db,
+                                            &name,
+                                        )));
                                     }
                                 }
                             });

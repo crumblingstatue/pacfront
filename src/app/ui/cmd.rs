@@ -1,6 +1,6 @@
 use {
     super::{Tab, tabs::package::PkgTab},
-    crate::app::PacfrontApp,
+    crate::{alpm_util::PkgId, app::PacfrontApp},
     eframe::egui,
     egui_dock::{Node, NodeIndex, TabIndex},
 };
@@ -17,13 +17,13 @@ impl CmdBuf {
 }
 
 pub enum Cmd {
-    OpenPkgTab { name: String, remote: bool },
+    OpenPkgTab(PkgId),
 }
 
 pub fn process_cmds(app: &mut PacfrontApp, _ctx: &egui::Context) {
     for cmd in std::mem::take(&mut app.ui.shared.cmd.cmds) {
         match cmd {
-            Cmd::OpenPkgTab { name, remote } => {
+            Cmd::OpenPkgTab(id) => {
                 // First, try to activate already existing tab for this package
                 let mut focus_indices = None;
                 for (node_idx, (surf_idx, node)) in
@@ -31,21 +31,11 @@ pub fn process_cmds(app: &mut PacfrontApp, _ctx: &egui::Context) {
                 {
                     if let Node::Leaf { tabs, active, .. } = node {
                         for (tab_idx, tab) in tabs.iter_mut().enumerate() {
-                            #[expect(clippy::collapsible_else_if)]
-                            if remote {
-                                if let Tab::RemotePkg(pkg_tab) = tab
-                                    && pkg_tab.name == name
-                                {
-                                    focus_indices = Some((surf_idx, NodeIndex(node_idx)));
-                                    *active = TabIndex(tab_idx);
-                                }
-                            } else {
-                                if let Tab::LocalPkg(pkg_tab) = tab
-                                    && pkg_tab.name == name
-                                {
-                                    focus_indices = Some((surf_idx, NodeIndex(node_idx)));
-                                    *active = TabIndex(tab_idx);
-                                }
+                            if let Tab::Pkg(pkg_tab) = tab
+                                && pkg_tab.id == id
+                            {
+                                focus_indices = Some((surf_idx, NodeIndex(node_idx)));
+                                *active = TabIndex(tab_idx);
                             }
                         }
                     }
@@ -63,21 +53,14 @@ pub fn process_cmds(app: &mut PacfrontApp, _ctx: &egui::Context) {
                             }) {
                                 continue;
                             }
-                            if remote {
-                                tabs.push(Tab::RemotePkg(PkgTab::new(name)));
-                            } else {
-                                tabs.push(Tab::LocalPkg(PkgTab::new(name)));
-                            }
+                            tabs.push(Tab::Pkg(PkgTab::new(id)));
                             *active = TabIndex(tabs.len().saturating_sub(1));
                             return;
                         }
                     }
-                    let pkg = if remote {
-                        Tab::RemotePkg(PkgTab::new(name))
-                    } else {
-                        Tab::LocalPkg(PkgTab::new(name))
-                    };
-                    app.ui.dock_state.push_to_first_leaf(pkg);
+                    app.ui
+                        .dock_state
+                        .push_to_first_leaf(Tab::Pkg(PkgTab::new(id)));
                 }
             }
         }

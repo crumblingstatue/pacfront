@@ -1,5 +1,8 @@
 use {
-    crate::app::ui::{PacState, SharedUiState, cmd::Cmd},
+    crate::{
+        alpm_util::PkgId,
+        app::ui::{PacState, SharedUiState, cmd::Cmd},
+    },
     eframe::egui,
     egui_extras::{Column, TableBuilder},
 };
@@ -64,10 +67,7 @@ pub fn ui(ui: &mut egui::Ui, pac: &mut PacState, ui_state: &mut SharedUiState) {
                     let pkg = &list[row.index()];
                     row.col(|ui| {
                         if ui.link(pkg.name()).clicked() {
-                            ui_state.cmd.push(Cmd::OpenPkgTab {
-                                name: pkg.name().to_string(),
-                                remote: false,
-                            });
+                            ui_state.cmd.push(Cmd::OpenPkgTab(PkgId::local(pkg.name())));
                         }
                     });
                     row.col(|ui| {

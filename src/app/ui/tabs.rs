@@ -31,8 +31,7 @@ impl TabViewer for TabViewState<'_, '_> {
                     .sum::<usize>()
             )
             .into(),
-            Tab::LocalPkg(pkg) => format!("Package '{}'", pkg.name).into(),
-            Tab::RemotePkg(pkg) => format!("Remote Package '{}'", pkg.name).into(),
+            Tab::Pkg(pkg) => format!("Package '{}'", pkg.id).into(),
         }
     }
 
@@ -40,8 +39,7 @@ impl TabViewer for TabViewState<'_, '_> {
         match tab {
             Tab::LocalPkgList => local_pkg_list::ui(ui, self.pac, self.ui),
             Tab::RemotePkgList => remote_pkg_list::ui(ui, self.pac, self.ui),
-            Tab::LocalPkg(tab) => package::ui(ui, self.pac, self.ui, tab, false),
-            Tab::RemotePkg(tab) => package::ui(ui, self.pac, self.ui, tab, true),
+            Tab::Pkg(tab) => package::ui(ui, self.pac, self.ui, tab),
         }
     }
 
@@ -56,8 +54,7 @@ impl TabViewer for TabViewState<'_, '_> {
     fn force_close(&mut self, tab: &mut Self::Tab) -> bool {
         match tab {
             Tab::LocalPkgList => false,
-            Tab::LocalPkg(pkg_tab) => pkg_tab.force_close,
-            Tab::RemotePkg(pkg_tab) => pkg_tab.force_close,
+            Tab::Pkg(pkg_tab) => pkg_tab.force_close,
             Tab::RemotePkgList => false,
         }
     }
@@ -68,6 +65,5 @@ pub enum Tab {
     #[default]
     LocalPkgList,
     RemotePkgList,
-    LocalPkg(PkgTab),
-    RemotePkg(PkgTab),
+    Pkg(PkgTab),
 }
