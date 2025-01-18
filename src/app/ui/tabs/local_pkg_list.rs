@@ -48,6 +48,7 @@ pub fn ui(
                 ));
             });
         });
+        ui.add_space(4.0);
     });
     TableBuilder::new(ui)
         .column(Column::auto())
