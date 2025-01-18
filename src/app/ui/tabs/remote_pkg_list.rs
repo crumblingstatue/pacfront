@@ -65,8 +65,17 @@ pub fn ui(ui: &mut egui::Ui, pac: &mut PacState, ui_state: &mut SharedUiState) {
                                     remote: true,
                                 });
                             }
-                            if this.pkg_list.iter().any(|pkg2| pkg2.name() == pkg.name()) {
-                                ui.label("[installed]");
+                            if this.pkg_list.iter().any(|pkg2| pkg2.name() == pkg.name())
+                                && ui
+                                    .add(
+                                        egui::Label::new("[installed]").sense(egui::Sense::click()),
+                                    )
+                                    .clicked()
+                            {
+                                ui_state.cmd.push(Cmd::OpenPkgTab {
+                                    name: pkg.name().to_string(),
+                                    remote: false,
+                                });
                             }
                         });
                     });
