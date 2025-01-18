@@ -5,13 +5,17 @@ use {app::PacfrontApp, eframe::NativeOptions};
 
 mod alpm_util;
 mod app;
+mod config;
 
 fn main() -> anyhow::Result<()> {
-    let app = PacfrontApp::new()?;
+    let mut app = PacfrontApp::new()?;
     eframe::run_native(
         "pacfront",
         NativeOptions::default(),
-        Box::new(move |_cc| Ok(Box::new(app))),
+        Box::new(move |cc| {
+            app.sync_from_config(&cc.egui_ctx);
+            Ok(Box::new(app))
+        }),
     )
     .unwrap();
     Ok(())

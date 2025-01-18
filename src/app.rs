@@ -1,7 +1,9 @@
 mod ui;
 
 use {
+    crate::config::Config,
     alpm::{Alpm, Package},
+    egui_colors::{Colorix, tokens::ThemeColor},
     ouroboros::self_referencing,
     ui::UiState,
 };
@@ -9,6 +11,7 @@ use {
 pub struct PacfrontApp {
     pac: PacState,
     ui: UiState,
+    cfg: Config,
 }
 
 #[self_referencing]
@@ -60,7 +63,22 @@ impl PacfrontApp {
         Ok(Self {
             pac: PacState::gimme_new()?,
             ui: UiState::default(),
+            cfg: Config::load_or_default(),
         })
+    }
+    pub fn sync_from_config(&mut self, egui_ctx: &eframe::egui::Context) {
+        if let Some(color_theme) = &self.cfg.color_theme {
+            self.ui.shared.colorix =
+                Some(Colorix::init(egui_ctx, color_theme.map(ThemeColor::Custom)))
+        }
+    }
+    fn sync_to_config(&mut self) {
+        self.cfg.color_theme = self
+            .ui
+            .shared
+            .colorix
+            .as_ref()
+            .map(|colorix| colorix.theme().map(|theme| theme.rgb()));
     }
 }
 
@@ -69,5 +87,11 @@ impl eframe::App for PacfrontApp {
         ui::top_panel_ui(self, ctx);
         ui::central_panel_ui(self, ctx);
         ui::cmd::process_cmds(self, ctx);
+    }
+    fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        self.sync_to_config();
+        if let Err(e) = self.cfg.save() {
+            eprintln!("Failed to save config: {e}");
+        }
     }
 }

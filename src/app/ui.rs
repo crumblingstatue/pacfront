@@ -4,6 +4,7 @@ use {
     eframe::egui,
     egui_colors::Colorix,
     egui_dock::{DockArea, DockState},
+    std::process::Command,
     tabs::{Tab, TabViewState},
 };
 
@@ -13,13 +14,13 @@ mod tabs;
 
 pub(super) struct UiState {
     dock_state: DockState<Tab>,
-    shared: SharedUiState,
+    pub shared: SharedUiState,
 }
 
 #[derive(Default)]
-struct SharedUiState {
+pub struct SharedUiState {
     cmd: CmdBuf,
-    colorix: Option<Colorix>,
+    pub colorix: Option<Colorix>,
 }
 
 impl Default for UiState {
@@ -45,6 +46,17 @@ pub fn top_panel_ui(app: &mut PacfrontApp, ctx: &egui::Context) {
                     if ui.button("🎨 Color theme").clicked() {
                         ui.close_menu();
                         app.ui.dock_state.push_to_first_leaf(Tab::ColorTheme);
+                    }
+                    match crate::config::cfg_dir() {
+                        Some(dir) => {
+                            if ui.button("Open config dir").clicked() {
+                                ui.close_menu();
+                                let _ = Command::new("xdg-open").arg(dir).status();
+                            }
+                        }
+                        None => {
+                            ui.label("<missing config dir>");
+                        }
                     }
                 });
             });
