@@ -31,7 +31,7 @@ impl TabViewer for TabViewState<'_, '_> {
                     .sum::<usize>()
             )
             .into(),
-            Tab::Pkg(pkg) => format!("Package '{}'", pkg.id).into(),
+            Tab::Pkg(pkg) => format!("📦 {}", pkg.id).into(),
         }
     }
 
