@@ -2,11 +2,13 @@ use {
     super::{PacfrontApp, ouroboros_impl_pac_state::PacState},
     cmd::CmdBuf,
     eframe::egui,
+    egui_colors::Colorix,
     egui_dock::{DockArea, DockState},
     tabs::{Tab, TabViewState},
 };
 
 pub mod cmd;
+mod paint_util;
 mod tabs;
 
 pub(super) struct UiState {
@@ -17,6 +19,7 @@ pub(super) struct UiState {
 #[derive(Default)]
 struct SharedUiState {
     cmd: CmdBuf,
+    colorix: Option<Colorix>,
 }
 
 impl Default for UiState {
@@ -28,10 +31,24 @@ impl Default for UiState {
     }
 }
 
-pub fn top_panel_ui(_app: &mut PacfrontApp, ctx: &egui::Context) {
-    egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-        ui.label("📦 Pacfront");
-    });
+pub fn top_panel_ui(app: &mut PacfrontApp, ctx: &egui::Context) {
+    egui::TopBottomPanel::top("top_panel")
+        .exact_height(26.0)
+        .show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                let (re, painter) =
+                    ui.allocate_painter(egui::vec2(24.0, 24.0), egui::Sense::hover());
+                paint_util::draw_logo(&painter, re.rect.center(), 8.0);
+                ui.label("Pacfront");
+                ui.separator();
+                ui.menu_button("☰ Preferences", |ui| {
+                    if ui.button("🎨 Color theme").clicked() {
+                        ui.close_menu();
+                        app.ui.dock_state.push_to_first_leaf(Tab::ColorTheme);
+                    }
+                });
+            });
+        });
 }
 
 pub fn central_panel_ui(app: &mut PacfrontApp, ctx: &egui::Context) {
