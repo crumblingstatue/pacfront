@@ -1,11 +1,11 @@
 use {
     super::{PacState, SharedUiState},
     eframe::egui,
-    egui_colors::{Colorix, tokens::ThemeColor},
     egui_dock::TabViewer,
     package::PkgTab,
 };
 
+mod color_theme;
 pub mod local_pkg_list;
 pub mod package;
 pub mod remote_pkg_list;
@@ -14,21 +14,6 @@ pub struct TabViewState<'pac, 'ui> {
     pub pac: &'pac mut PacState,
     pub ui: &'ui mut SharedUiState,
 }
-
-const THEME_PACARCH: egui_colors::Theme = [
-    ThemeColor::Custom([0, 125, 255]),
-    ThemeColor::Custom([119, 164, 255]),
-    ThemeColor::Indigo,
-    ThemeColor::Iris,
-    ThemeColor::Indigo,
-    ThemeColor::Gray,
-    ThemeColor::Iris,
-    ThemeColor::Indigo,
-    ThemeColor::Blue,
-    ThemeColor::Indigo,
-    ThemeColor::Custom([254, 247, 116]),
-    ThemeColor::Custom([0, 245, 232]),
-];
 
 impl TabViewer for TabViewState<'_, '_> {
     type Tab = Tab;
@@ -59,38 +44,7 @@ impl TabViewer for TabViewState<'_, '_> {
             Tab::LocalPkgList(state) => local_pkg_list::ui(ui, self.pac, self.ui, state),
             Tab::RemotePkgList(state) => remote_pkg_list::ui(ui, self.pac, self.ui, state),
             Tab::Pkg(tab) => package::ui(ui, self.pac, self.ui, tab),
-            Tab::ColorTheme => match &mut self.ui.colorix {
-                Some(colorix) => {
-                    if ui.button("Deactivate custom colors").clicked() {
-                        ui.ctx().style_mut(|style| {
-                            *style = egui::Style::default();
-                        });
-                        self.ui.colorix = None;
-                        return;
-                    }
-                    ui.horizontal(|ui| {
-                        ui.group(|ui| {
-                            ui.label("Light/dark");
-                            colorix.light_dark_toggle_button(ui);
-                        });
-                        ui.group(|ui| {
-                            ui.label("Preset");
-                            colorix.themes_dropdown(
-                                ui,
-                                Some((vec!["PacArch"], vec![THEME_PACARCH])),
-                                false,
-                            );
-                        });
-                    });
-                    ui.add_space(8.0);
-                    colorix.ui_combo_12(ui, true);
-                }
-                None => {
-                    if ui.button("Activate custom colors").clicked() {
-                        self.ui.colorix = Some(Colorix::init(ui.ctx(), THEME_PACARCH));
-                    }
-                }
-            },
+            Tab::ColorTheme => color_theme::ui(ui, &mut self.ui.colorix),
         }
     }
 
